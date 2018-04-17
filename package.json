@@ -1,0 +1,22 @@
+{
+  "name": "node-blockchain-2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brechtvalcke/node-blockchain-2.git"
+  },
+  "author": "Brecht Valcke",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/brechtvalcke/node-blockchain-2/issues"
+  },
+  "homepage": "https://github.com/brechtvalcke/node-blockchain-2#readme",
+  "dependencies": {
+    "crypto-js": "^3.1.9-1"
+  }
+}
