@@ -1,4 +1,6 @@
 module.exports = {
-    difficulty : 5,
+    startDifficulty : 6,
     miningReward : 100,
+    blockGenerationInterval: 10,
+    difficultyAdjustmentInterval: 10,
 }
