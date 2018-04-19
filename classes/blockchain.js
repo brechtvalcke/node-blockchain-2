@@ -145,6 +145,9 @@ module.exports = class Blockchain {
                 }
                 resolve(balance);
             })
+            .catch(error => {
+                reject(error);
+            })
         })
     }
 

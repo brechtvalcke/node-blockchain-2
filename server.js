@@ -25,6 +25,7 @@ app.use(bodyParser.urlencoded({
 
 app.post("/pending", (req,res) => {
     new Transaction(req.body).save();
+    res.send("added");
 });
 
 app.get("/pending", (req,res) => {
@@ -35,6 +36,16 @@ app.get("/pending", (req,res) => {
         res.json(pendingTransactions);
     });
 });
+
+app.get("/balance/:walletId", (req,res) => {
+    blockchain.getBalanceOfAddress(req.params.walletId)
+    .then((balance) => {
+        res.send(balance);
+    })
+    .catch(error => {
+        res.status(400).json({error: "Something went wrong"});
+    })
+})
 
 app.get("/", (req,res) => {
     Block.find({}, (err,blocks) => {

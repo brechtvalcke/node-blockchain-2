@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npm run startInterface & npm run startMiner",
     "stop": "npm run stopMiner & npm run stopInterface",
-    "restart": "npm run stop & npn run start",
+    "restart": "npm run stop & npm run start",
     "stopInterface": "pm2 stop BlockchainInterface",
     "stopMiner": "pm2 stop BlockchainMiner",
     "startInterface": "pm2 start server.js --name BlockchainInterface",
