@@ -2,8 +2,17 @@
   "name": "node-blockchain-2",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "server.js",
   "scripts": {
+    "start": "npm run startInterface & npm run startMiner",
+    "stop": "npm run stopMiner & npm run stopInterface",
+    "restart": "npm run stop & npn run start",
+    "stopInterface": "pm2 stop BlockchainInterface",
+    "stopMiner": "pm2 stop BlockchainMiner",
+    "startInterface": "pm2 start server.js --name BlockchainInterface",
+    "startMiner": "pm2 start miner.js --name BlockchainMiner",
+    "monitor": "pm2 monit",
+    "monit": "pm2 monit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -17,6 +26,10 @@
   },
   "homepage": "https://github.com/brechtvalcke/node-blockchain-2#readme",
   "dependencies": {
-    "crypto-js": "^3.1.9-1"
+    "body-parser": "^1.18.2",
+    "crypto-js": "^3.1.9-1",
+    "express": "^4.16.3",
+    "mongoose": "^5.0.15",
+    "pm2": "^2.10.2"
   }
 }
