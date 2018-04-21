@@ -1,8 +1,5 @@
 const SHA256 = require("crypto-js/sha256");
-const blockchainConfig = require('../config/blockchain');
 const mongoose = require("mongoose");
-
-const Transaction = require("./transaction");
 
 const blockSchema = new mongoose.Schema({
     index: {type: Number, unique : true, dropDups: true},

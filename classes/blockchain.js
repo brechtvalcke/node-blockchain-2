@@ -6,7 +6,6 @@ module.exports = class Blockchain {
     constructor() {
         this.createGenesisBlockIfEmpty()
         this.difficulty = blockchainConfig.startDifficulty;
-        this.pendingTransactions = [];
         this.miningReward = blockchainConfig.miningReward;
     }
 
@@ -60,8 +59,8 @@ module.exports = class Blockchain {
         block.deleteOne({_id: block.id});
     }
 
-    createRewardTransaction(miningRewardAddress) {
-        return new Promise((resolve, reject) => {
+    createRewardTransaction(miningRewardAddress, block) {
+        return new Promise((resolve,reject) => {
             new Transaction({
                 fromAddress: null,
                 toAddress: miningRewardAddress,
@@ -70,10 +69,22 @@ module.exports = class Blockchain {
                 resolve(true);
             })
             .catch(error => {
-                this.rollbackBlock(block);
                 reject(error);
             });
         })
+    }
+
+    deleteTransaction(transaction) {
+        return new Promise((resolve,reject) => {
+            Transaction.deleteOne({_id: transaction._id},(err) => {
+                if(err) {
+
+                    reject(error);
+                }
+                resolve(true);
+            });
+        });
+
     }
 
     mineTransactions(miningRewardAddress,transactions,latestBlock) {
@@ -90,38 +101,33 @@ module.exports = class Blockchain {
             const startDate = new Date();
             // blocking function (not ideal but mining needs to be blocking because it's javascript searching for a hash as fast as it can)
             block = Block.mineBlock(this.difficulty, block);
-            console.log(block);
             const endDate = new Date();
     
             this.addblockToChain(block).then((res) => {
-                if ( !transactions || transactions.length === 0) {
-                    this.createRewardTransaction(miningRewardAddress).then((res) => {
-                        console.log('Block successfully mined! It took: ' + (endDate.getTime() - startDate.getTime()) + " ms.");
-                        resolve(res);
-                    }).catch(err => {
+                this.createRewardTransaction(miningRewardAddress, block).then((res2) => {
+                    const transactionPromises = [];
+                    block.transactions.forEach(transaction => {
+                        transactionPromises.push(this.deleteTransaction(transaction));
+                    });
+                    Promise.all(transactionPromises).then((res) => {
+                        console.log('Block  mined. It took: ' + (endDate.getTime() - startDate.getTime()) + " ms.");
+                        resolve(block);
+
+                    })
+                    .catch((error) => {
+                        console.log('ERROR: Block  mined. But saving block failed! It took: ' + (endDate.getTime() - startDate.getTime()) + " ms.");
                         this.rollbackBlock(block);
-                        reject(err);
                     })
-                }
-                block.transactions.forEach(transaction => {
-                    console.log(transaction);
-                    Transaction.deleteOne({_id: transaction._id},(err) => {
-                        if(err) {
-                            this.rollbackBlock(block);
-                            reject(error);
-                        }
-                        this.createRewardTransaction(miningRewardAddress).then((res) => {
-                            console.log('Block successfully mined! It took: ' + (endDate.getTime() - startDate.getTime()) + " ms.");
-                            resolve(res);
-                        }).catch(err => {
-                            this.rollbackBlock(block);
-                            reject(err);
-                        })
-                    })
-                });
+                })
+                .catch(err => {
+                    console.log('ERROR: Block  mined. But saving block failed! It took: ' + (endDate.getTime() - startDate.getTime()) + " ms.");
+                    this.rollbackBlock(block);
+                    reject(err);
+                })
+                
 
             }).catch(err => {
-                console.log('ERROR: Block  mined. But saving the block failed it took: ' + (endDate.getTime() - startDate.getTime()) + " ms.");
+                console.log('ERROR: Block  mined. But saving block failed! It took: ' + (endDate.getTime() - startDate.getTime()) + " ms.");
                 reject(err);
             })
         });

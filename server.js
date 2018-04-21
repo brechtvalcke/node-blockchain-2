@@ -22,12 +22,13 @@ app.use(bodyParser.urlencoded({
     parameterLimit: 10000,
 }));
 
-
+// add pending transaction to be confirmed
 app.post("/pending", (req,res) => {
     new Transaction(req.body).save();
     res.send("added");
 });
 
+// get all pending transactions
 app.get("/pending", (req,res) => {
     Transaction.find({},(err,pendingTransactions) => {
         if(err) {
@@ -37,6 +38,7 @@ app.get("/pending", (req,res) => {
     });
 });
 
+// check the balence of a certain wallet
 app.get("/balance/:walletId", (req,res) => {
     blockchain.getBalanceOfAddress(req.params.walletId)
     .then((balance) => {
@@ -47,6 +49,7 @@ app.get("/balance/:walletId", (req,res) => {
     })
 })
 
+// return the full blockchain in json format
 app.get("/", (req,res) => {
     Block.find({}, (err,blocks) => {
         if(err) {
