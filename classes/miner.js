@@ -1,13 +1,8 @@
-const blockchainConfig = require('../config/blockchain');
 const minerConfig = require('../config/miner');
-const mongodbConfig = require('../config/mongodb');
 
 const Blockchain = require('./blockchain');
 const Transaction = require('./transaction');
 const Block = require('./block');
-
-const mongoose = require('mongoose');
-mongoose.connect(mongodbConfig.connectionString);
 
 const blockchain = new Blockchain();
 

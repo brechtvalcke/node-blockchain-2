@@ -12,8 +12,7 @@
     "startInterface": "pm2 start server.js --name BlockchainInterface",
     "startMiner": "pm2 start miner.js --name BlockchainMiner",
     "monitor": "pm2 monit",
-    "monit": "pm2 monit",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "monit": "pm2 monit"
   },
   "repository": {
     "type": "git",
