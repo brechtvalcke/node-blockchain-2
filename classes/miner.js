@@ -1,10 +1,13 @@
+var request = require('request');   
+
 const minerConfig = require('../config/miner');
+const expressConfig = require('../config/express');
 
 const Blockchain = require('./blockchain');
 const Transaction = require('./transaction');
 const Block = require('./block');
 
-const blockchain = new Blockchain();
+const blockchain = new Blockchain(true);
 
 module.exports = class Miner {
 
@@ -15,10 +18,17 @@ module.exports = class Miner {
     startMiningCycle() {
         blockchain.getChain().then((chain) => {
             this.selectOptimalTransactionsToMine().then((transactionsToConfirm) => {
-                const latestBlock = chain[chain.length - 1];
-                blockchain.mineTransactions(minerConfig.minerWalletId, transactionsToConfirm, latestBlock)
-                .then((res) => {
-                    this.startMiningCycle();
+                blockchain.mineTransactions(minerConfig.minerWalletId, transactionsToConfirm, chain)
+                .then((block) => {
+
+                    // ask interface to broadcast freshly mined block
+                    request.post('http://localhost:' + expressConfig.port + "/blockMined", {token: minerConfig.minerToken, block: block}, (err,httpResponse,body) => {
+                        if(err){
+                            this.handleErrorDuringMining(err);
+                        }
+
+                        this.startMiningCycle();
+                    })
                 }).catch(error => {
                     this.handleErrorDuringMining(error);
                 })

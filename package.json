@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "npm run startInterface & npm run startMiner",
-    "stop": "npm run stopMiner & npm run stopInterface",
+    "stop": "pm2 delete all",
     "restart": "npm run stop & npm run start",
     "stopInterface": "pm2 stop BlockchainInterface",
     "stopMiner": "pm2 stop BlockchainMiner",
@@ -29,6 +29,8 @@
     "crypto-js": "^3.1.9-1",
     "express": "^4.16.3",
     "mongoose": "^5.0.15",
-    "pm2": "^2.10.2"
+    "pm2": "^2.10.2",
+    "request": "2.83.0",
+    "ws": "^5.1.1"
   }
 }

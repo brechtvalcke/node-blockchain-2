@@ -1,0 +1,4 @@
+approvedBlock(block)
+declinedBlock(block)
+blockRequestResponse(data)
+chainRequestResponse(data)

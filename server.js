@@ -9,6 +9,7 @@ const app = express();
 
 const expressConfig = require('./config/express');
 const mongodbConfig = require('./config/mongodb');
+const minerConfig = require('./config/miner');
 
 mongoose.connect(mongodbConfig.connectionString);
 
@@ -24,7 +25,8 @@ app.use(bodyParser.urlencoded({
 
 // add pending transaction to be confirmed
 app.post("/pending", (req,res) => {
-    new Transaction(req.body).save();
+    const transaction = new Transaction(req.body).save();
+    blockchain.broadCastTransaction(transaction);
     res.send("added");
 });
 
@@ -38,7 +40,7 @@ app.get("/pending", (req,res) => {
     });
 });
 
-// check the balence of a certain wallet
+// check the balance of a certain wallet
 app.get("/balance/:walletId", (req,res) => {
     blockchain.getBalanceOfAddress(req.params.walletId)
     .then((balance) => {
@@ -47,6 +49,16 @@ app.get("/balance/:walletId", (req,res) => {
     .catch(error => {
         res.status(400).json({error: "Something went wrong"});
     })
+});
+
+app.get("/blockMined", (req,res) => {
+    if(req.body.token !== minerConfig.minerToken) {
+        res.status(400).json({error: "Token invalid"});
+        return;
+    }
+    const minedBlock = req.body.block;
+    blockchain.addblockToChain(block, true);
+    res.json({succes: "block broadcasted"});
 })
 
 // return the full blockchain in json format
@@ -57,6 +69,8 @@ app.get("/", (req,res) => {
         }
         res.json(blocks)
     });
-})
+});
 
-app.listen(expressConfig.port);
+app.listen(expressConfig.port,() => {
+    console.log("server started on port: " + expressConfig.port);
+});
