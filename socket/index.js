@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
-const socketConfig = require("../config/socket");
+const ipaddr = require('ipaddr.js');
 
+const socketConfig = require("../config/socket");
 const ACTION_TYPES = require("./actionTypes");
 
 module.exports = class P2P {
@@ -12,6 +13,8 @@ module.exports = class P2P {
         this.peerAdresses = socketConfig.initalClients;
         this.initServer();
         this.connectToPeers();
+
+        this.initDiscovery();
     }
 
     addNewPeers(peers) {
@@ -19,11 +22,17 @@ module.exports = class P2P {
             this.addPeer(peer);
         });
     }
+
+    initDiscovery() {
+        this.discoveryInterval = setInterval(() => {
+            this.fetchPeersFromPeers();
+        }, 1000 * 60 * 60 * 5)
+    }
     
     addPeer(peer) {
         if(!this.isPeerInList(peer)) {
-        this.peerAdresses.push(peer);
-        this.addClient(peer);
+            this.peerAdresses.push(peer);
+            this.addClient(peer);
         }
     }
 
@@ -43,14 +52,20 @@ module.exports = class P2P {
         });
         setTimeout(() => {
             this.fetchPeersFromPeers();
-        }, 1000);
+        }, 5000);
     }
 
     addClient(address) {
-        console.log("connecting to: " + this.formatAddress(address));
-        const ws = new WebSocket(this.formatAddress(address));
-        this.initSocket(ws);
-        this.clients.push(ws);
+        try {
+            console.log("connecting to: " + this.formatAddress(address));
+            const ws = new WebSocket(this.formatAddress(address));
+            this.initSocket(ws);
+            this.clients.push(ws);
+        } catch (e) {
+            console.log(e);
+            return;
+        }
+
     }
 
     formatAddress(address) {
@@ -62,19 +77,55 @@ module.exports = class P2P {
         return "ws://" + address + ":" + socketConfig.server.port;
     }
 
+
+    formatIp(ipString) {
+        if (ipaddr.isValid(ipString)) {
+            try {
+                const addr = ipaddr.parse(ipString);
+                if (ipaddr.IPv6.isValid(ipString) && addr.isIPv4MappedAddress()) {
+                    return addr.toIPv4Address().toString();
+                }
+                return addr.toNormalizedString();
+            } catch (e) {
+                return ipString;
+            }
+        }
+        return undefined;
+    }
+
     initSocket(socket) {
+        socket.on('error', (err) => {
+            // remove faulty client
+            this.clients = this.clients.filter((client) => {
+                return client.url !== socket.url;
+            })
+
+            // remove faulty address from peers
+            let addressToRemove = socket.url.slice(5);
+            this.peerAdresses = this.peerAdresses.filter((address) => {
+                return address !== addressToRemove && address !== addressToRemove + ":" + socketConfig.server.port;
+            })
+            
+        });
         socket.on('connection', (ws, req) => {
             console.log("socket now listening for messages");
             ws.on('message' , (message) => { this.handleServerMessage(message, ws)});
-            console.log(req.ip);
+            ws.on("error" , (error) => {
+                console.log(error);
+            });
+            ws.on('close', () => {
+                console.log('socket disconnected');
+            });
         });
     }
 
     initServer() {
         this.server.on('connection',  (ws, req) => {
-            console.log("socket server now listening for messages");
+            console.log("socket connected: " + this.formatIp(req.connection.remoteAddress));
             ws.on('message', (message) => this.handleClientMessage(message, ws));
-            console.log(req.ip);
+            ws.on("error" , (error) => {
+                console:log(error);
+            })
           });
     }
 
@@ -95,7 +146,8 @@ module.exports = class P2P {
 
     fetchPeersFromPeers() {
         const req = {
-            action: ACTION_TYPES.GET_PEERS
+            action: ACTION_TYPES.GET_PEERS,
+            serverPort: socketConfig.server.port,
         }
         this.broadcastToPeers(req);
     }
@@ -115,6 +167,7 @@ module.exports = class P2P {
         }
         this.broadcastToPeers(req);
     }
+
 
     handleClientMessage(message,ws) {
         console.log(message);
@@ -172,7 +225,9 @@ module.exports = class P2P {
                 res.data = this.peerAdresses;
 
                 this.encodeAndSend(res,ws);
-                this.addPeer(ws._socket.remoteAddress);
+
+                const reqAddress = ws._socket.address();
+                this.addPeer(this.formatIp(reqAddress.address) + ":" + (msg.serverPort * 1));
 
             break;
 
@@ -183,6 +238,7 @@ module.exports = class P2P {
     }
 
     handleServerMessage(message,ws) {
+        console.log(message);
         const msg = this.decodeMesage(message);
         const res = {};
         switch(msg.action) {
@@ -214,7 +270,7 @@ module.exports = class P2P {
         const msg = this.encodeMessage(message);
 
         this.clients.forEach((client) => {
-            client.send(msg);
+            client.send(msg, (err) => { err ? this.handleSocketDisconnected(err, client) : ""});
         });
     }
 
@@ -227,6 +283,11 @@ module.exports = class P2P {
     }
 
     encodeAndSend(message,destination) {
-        destination.send(this.encodeMessage(message));
+        destination.send(this.encodeMessage(message), (err) => {err ? this.handleSocketDisconnected(err, destination) : ""});
+    }
+
+    handleSocketDisconnected(err, socket) {
+        socket = new WebSocket(socket.url);
+        this.initSocket(socket);
     }
 }

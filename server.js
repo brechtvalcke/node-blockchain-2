@@ -25,9 +25,14 @@ app.use(bodyParser.urlencoded({
 
 // add pending transaction to be confirmed
 app.post("/pending", (req,res) => {
-    const transaction = new Transaction(req.body).save();
-    blockchain.broadCastTransaction(transaction);
-    res.send("added");
+    console.log(req.body);
+    new Transaction(req.body).save().then(transaction => {
+        blockchain.broadCastTransaction(transaction);
+        res.send("added");
+    })
+    .catch((error) => {
+        res.status(400).json({error: "Something went wrong"});
+    });
 });
 
 // get all pending transactions
@@ -51,13 +56,12 @@ app.get("/balance/:walletId", (req,res) => {
     })
 });
 
-app.get("/blockMined", (req,res) => {
+app.post("/blockMined", (req,res) => {
     if(req.body.token !== minerConfig.minerToken) {
         res.status(400).json({error: "Token invalid"});
         return;
     }
-    const minedBlock = req.body.block;
-    blockchain.addblockToChain(block, true);
+    blockchain.broadCastMinedBlock(new Block(req.body.block), true);
     res.json({succes: "block broadcasted"});
 })
 

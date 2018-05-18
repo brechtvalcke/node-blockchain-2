@@ -1,4 +1,4 @@
-var request = require('request');   
+const request = require('request');   
 
 const minerConfig = require('../config/miner');
 const expressConfig = require('../config/express');
@@ -20,15 +20,17 @@ module.exports = class Miner {
             this.selectOptimalTransactionsToMine().then((transactionsToConfirm) => {
                 blockchain.mineTransactions(minerConfig.minerWalletId, transactionsToConfirm, chain)
                 .then((block) => {
-
                     // ask interface to broadcast freshly mined block
-                    request.post('http://localhost:' + expressConfig.port + "/blockMined", {token: minerConfig.minerToken, block: block}, (err,httpResponse,body) => {
+                    request.post('http://localhost:' + expressConfig.port + "/blockMined", {
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({token: minerConfig.minerToken, block: block})
+                    }, (err,httpResponse,body) => {
                         if(err){
                             this.handleErrorDuringMining(err);
                         }
 
                         this.startMiningCycle();
-                    })
+                    });
                 }).catch(error => {
                     this.handleErrorDuringMining(error);
                 })

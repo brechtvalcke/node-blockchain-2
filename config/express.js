@@ -1,3 +1,3 @@
 module.exports = {
-    port: 80,
+    port: (process.env.expressPort * 1 ) || 80
 }

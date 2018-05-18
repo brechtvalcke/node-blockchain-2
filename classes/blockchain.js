@@ -79,13 +79,16 @@ module.exports = class Blockchain {
         return chain[chain.length - 1].difficulty;
     }
 
+    broadCastMinedBlock(block) {
+        this.p2p.blockMined(block);
+    }
+
+
     addblockToChain(block, broadcast = false) {
         return new Promise((resolve, reject) => {
             this.getChain().then((chain) => {
                 block.save().then((res) => {
-                    if (broadcast) {
-                        this.p2p.blockMined(block);
-                    }
+
                     resolve(true);
                 }).catch(error => {
                     reject(error);
@@ -97,7 +100,6 @@ module.exports = class Blockchain {
     }
 
     rollbackBlock(block) {
-        console.log(block);
         block.remove({
             _id: block.id
         }, (err) => {
@@ -112,9 +114,11 @@ module.exports = class Blockchain {
                 toAddress: miningRewardAddress,
                 amount: this.miningReward,
             })
-
             // send transaction to interface who can broadcast instead of adding it directly
-            request.post('http://localhost:' + expressConfig.port + "/pending", transaction, (err, httpResponse, body) => {
+            request.post('http://localhost:' + expressConfig.port + "/pending", {
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(transaction),
+            }, (err, httpResponse, body) => {
                 if (err) {
                     reject(err);
                 }
@@ -168,12 +172,14 @@ module.exports = class Blockchain {
 
                             })
                             .catch((error) => {
+                                console.log(3);
                                 console.log('ERROR: Block  mined. But removing transactions failed! It took: ' + (endDate.getTime() - startDate.getTime()) + " ms.");
                                 this.rollbackBlock(block);
-                                rejec(error);
+                                reject(error);
                             })
                     })
                     .catch(err => {
+                        console.log(2);
                         console.log('ERROR: Block  mined. But saving block failed! It took: ' + (endDate.getTime() - startDate.getTime()) + " ms.");
                         this.rollbackBlock(block);
                         reject(err);
@@ -181,6 +187,7 @@ module.exports = class Blockchain {
 
 
             }).catch(err => {
+                console.log(1);
                 console.log('ERROR: Block  mined. But saving block failed! It took: ' + (endDate.getTime() - startDate.getTime()) + " ms.");
                 reject(err);
             })
@@ -252,27 +259,26 @@ module.exports = class Blockchain {
     }
 
     handleBlockExternalyMined(block) {
-
+       
         return new Promise((resolve, reject) => {
-
-            block = new Block(block).catch(error => {
-                reject('Block structure not valid');
-            })
+            block = new Block(block);
 
             this.getChain()
                 .then((chain) => {
-
                     const latestBlock = chain[chain.length - 1];
 
                     if (block.hash === latestBlock.hash) {
                         // block already added do nothing
+                        console.log("block already added skipping");
                         resolve({
                             added: false
                         });
+                        return;
                     }
 
                     if (block.previousHash !== latestBlock.hash) {
                         // blockchain might not be up to date or block is faulty. Request chain from others to check
+                        console.log("hashref does noet match. requesting longest chain")
                         this.p2p.requestChainFromPeers();
                         // do not add block because it can't be checked. Leave it to other nodes to add it.
                         reject("could not be checked");
@@ -381,7 +387,7 @@ module.exports = class Blockchain {
     }
 
     chainRequestResponse(externalChain) {
-
+        console.log("external chain recieved")
         if (!this.isValidChain(externalChain)) {
             // decline chain
             return;
