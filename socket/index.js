@@ -107,24 +107,29 @@ module.exports = class P2P {
             })
             
         });
-        socket.on('connection', (ws, req) => {
+        socket.on('open', (ws, req) => {
             console.log("socket now listening for messages");
-            ws.on('message' , (message) => { this.handleServerMessage(message, ws)});
-            ws.on("error" , (error) => {
-                console.log(error);
-            });
-            ws.on('close', () => {
-                console.log('socket disconnected');
-            });
+
+        });
+        socket.on('message' , (message) => {
+            this.handleServerMessage(message, socket);
+        });
+        socket.on("error" , (error) => {
+            console.log(error);
+        });
+        socket.on('close', () => {
+            console.log('socket disconnected');
         });
     }
 
     initServer() {
         this.server.on('connection',  (ws, req) => {
             console.log("socket connected: " + this.formatIp(req.connection.remoteAddress));
-            ws.on('message', (message) => this.handleClientMessage(message, ws));
+            ws.on('message', (message) => {
+                this.handleClientMessage(message, ws);
+            });
             ws.on("error" , (error) => {
-                console:log(error);
+                console.log(error);
             })
           });
     }
@@ -245,9 +250,9 @@ module.exports = class P2P {
             case ACTION_TYPES.BLOCK_MINE_RESPONSE:
 
                 if(msg.accepted) {
-                    this.blockchain.approvedBlock(msg.data);
+                    console.log("block accepted");
                 } else {
-                    this.blockchain.declinedBlock(msg.data);
+                    console.log("block declined");
                 }
                 
             break;

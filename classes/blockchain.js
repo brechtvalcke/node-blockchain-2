@@ -114,12 +114,13 @@ module.exports = class Blockchain {
                 toAddress: miningRewardAddress,
                 amount: this.miningReward,
             })
+            
             // send transaction to interface who can broadcast instead of adding it directly
             request.post('http://localhost:' + expressConfig.port + "/pending", {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(transaction),
             }, (err, httpResponse, body) => {
-                if (err) {
+                if (err || body !== "added") {
                     reject(err);
                 }
                 resolve(body);
@@ -340,6 +341,7 @@ module.exports = class Blockchain {
     isValidBlock(block, chain) {
 
         const chainUntillBlock = chain.filter((b) => b.index < block.index);
+        console.log(chainUntillBlock);
         const latestBlock = chainUntillBlock[chainUntillBlock - 1];
 
         // check again in case we use this function outside of handleBlockExternalyMined()
@@ -390,6 +392,7 @@ module.exports = class Blockchain {
         console.log("external chain recieved")
         if (!this.isValidChain(externalChain)) {
             // decline chain
+            console.log("chain declined");
             return;
         }
 
@@ -410,19 +413,23 @@ module.exports = class Blockchain {
                 // decline chain
             })
             .catch(error => {
-
+                console.log(error);
             })
     }
 
     isValidChain(chain) {
 
         // genesis block must be the same
-        if (chain[0] !== genesisBlock) {
+
+        genesisBlock.hash = genesisBlock.calculateHash();
+        if (chain[0].hash !== genesisBlock.hash) {
+            console.log("genesisblock does noet match");
             return false;
         }
 
         for (let i = 1; i <= chain.length - 1; i++) {
             if (!this.isValidBlock(chain[i], chain)) {
+                console.log("block not valid so chain not valid");
                 return false;
             }
         }
@@ -433,6 +440,7 @@ module.exports = class Blockchain {
 
     getTotalWork(chain) {
         const work = 0;
+
 
         chain.forEach(block => {
             work += block.difficulty;

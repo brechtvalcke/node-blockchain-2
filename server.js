@@ -57,6 +57,7 @@ app.get("/balance/:walletId", (req,res) => {
 });
 
 app.post("/blockMined", (req,res) => {
+    console.log(req.body);
     if(req.body.token !== minerConfig.minerToken) {
         res.status(400).json({error: "Token invalid"});
         return;
