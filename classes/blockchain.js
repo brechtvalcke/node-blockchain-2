@@ -417,13 +417,12 @@ module.exports = class Blockchain {
     }
 
     getTotalWork(chain) {
+        // we asume the chain is correct. Manual validation is required before calling this function
         const work = 0;
-
-
         chain.forEach(block => {
             work += block.difficulty;
         });
-
+        
         return work;
     }
 
