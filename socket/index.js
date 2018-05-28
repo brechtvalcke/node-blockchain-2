@@ -17,6 +17,56 @@ module.exports = class P2P {
         this.initDiscovery();
     }
 
+    initServer() {
+        this.server.on('connection',  (ws, req) => {
+            console.log("socket connected: " + this.formatIp(req.connection.remoteAddress));
+            ws.on('message', (message) => {
+                this.handleClientMessage(message, ws);
+            });
+            ws.on("error" , (error) => {
+                console.log(error);
+            })
+          });
+    }
+    
+    initSocket(socket) {
+        socket.on('error', (err) => {
+            // remove faulty client
+            this.clients = this.clients.filter((client) => {
+                return client.url !== socket.url;
+            })
+
+            // remove faulty address from peers
+            let addressToRemove = socket.url.slice(5);
+            this.peerAdresses = this.peerAdresses.filter((address) => {
+                return address !== addressToRemove && address !== addressToRemove + ":" + socketConfig.server.port;
+            })
+            
+        });
+        
+        socket.on('open', (ws, req) => {
+            console.log("socket now listening for messages");
+
+        });
+
+        socket.on('message' , (message) => {
+            this.handleServerMessage(message, socket);
+        });
+
+        socket.on('close', () => {
+            console.log('socket disconnected');
+        });
+    }
+
+    connectToPeers() {
+        this.peerAdresses.forEach(peer => {
+            this.addClient(peer);
+        });
+        setTimeout(() => {
+            this.fetchPeersFromPeers();
+        }, 5000);
+    }
+
     addNewPeers(peers) {
         peers.forEach(peer => {
             this.addPeer(peer);
@@ -44,15 +94,6 @@ module.exports = class P2P {
         });
 
         return foundPeer ? true : false;
-    }
-
-    connectToPeers() {
-        this.peerAdresses.forEach(peer => {
-            this.addClient(peer);
-        });
-        setTimeout(() => {
-            this.fetchPeersFromPeers();
-        }, 5000);
     }
 
     addClient(address) {
@@ -91,47 +132,6 @@ module.exports = class P2P {
             }
         }
         return undefined;
-    }
-
-    initSocket(socket) {
-        socket.on('error', (err) => {
-            // remove faulty client
-            this.clients = this.clients.filter((client) => {
-                return client.url !== socket.url;
-            })
-
-            // remove faulty address from peers
-            let addressToRemove = socket.url.slice(5);
-            this.peerAdresses = this.peerAdresses.filter((address) => {
-                return address !== addressToRemove && address !== addressToRemove + ":" + socketConfig.server.port;
-            })
-            
-        });
-        socket.on('open', (ws, req) => {
-            console.log("socket now listening for messages");
-
-        });
-        socket.on('message' , (message) => {
-            this.handleServerMessage(message, socket);
-        });
-        socket.on("error" , (error) => {
-            console.log(error);
-        });
-        socket.on('close', () => {
-            console.log('socket disconnected');
-        });
-    }
-
-    initServer() {
-        this.server.on('connection',  (ws, req) => {
-            console.log("socket connected: " + this.formatIp(req.connection.remoteAddress));
-            ws.on('message', (message) => {
-                this.handleClientMessage(message, ws);
-            });
-            ws.on("error" , (error) => {
-                console.log(error);
-            })
-          });
     }
 
     requestChainFromPeers() {
@@ -275,15 +275,17 @@ module.exports = class P2P {
         const msg = this.encodeMessage(message);
 
         this.clients.forEach((client) => {
-            client.send(msg, (err) => { err ? this.handleSocketDisconnected(err, client) : ""});
+            this.encodeAndSend(msg, client);
         });
     }
 
     decodeMesage(message) {
+        // moved to seperate function in case the method of transportation changes from json to something else
         return JSON.parse(message);
     }
 
     encodeMessage(message) {
+        // moved to seperate function in case the method of transportation changes from json to something else
         return JSON.stringify(message);
     }
 

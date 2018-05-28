@@ -86,13 +86,8 @@ module.exports = class Blockchain {
 
     addblockToChain(block, broadcast = false) {
         return new Promise((resolve, reject) => {
-            this.getChain().then((chain) => {
-                block.save().then((res) => {
-
-                    resolve(true);
-                }).catch(error => {
-                    reject(error);
-                });
+            block.save().then((res) => {
+                resolve(true);
             }).catch(error => {
                 reject(error);
             });
@@ -227,23 +222,6 @@ module.exports = class Blockchain {
         })
     }
 
-    isChainValid(chain) {
-        for (let i = 1; i < chain.length; i++) {
-            const currentBlock = chain[i];
-            const previousBlock = chain[i - 1];
-
-            if (currentBlock.hash !== currentBlock.calculateHash()) {
-                return false;
-            }
-
-            if (currentBlock.previousHash !== previousBlock.hash) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     getAdjustedDifficulty(chain) {
         const latestBlock = chain[chain.length - 1];
         const prevAdjustmentBlock = chain[chain.length - blockchainConfig.difficultyAdjustmentInterval];
@@ -342,7 +320,7 @@ module.exports = class Blockchain {
 
         const chainUntillBlock = chain.filter((b) => b.index < block.index);
         console.log(chainUntillBlock);
-        const latestBlock = chainUntillBlock[chainUntillBlock - 1];
+        const latestBlock = chainUntillBlock[chainUntillBlock.length - 1];
 
         // check again in case we use this function outside of handleBlockExternalyMined()
         if (block.previousHash !== latestBlock.hash) {
@@ -359,7 +337,7 @@ module.exports = class Blockchain {
             return false;
         }
 
-        // check if hash matches difficulty
+        // check if hash matches difficulty and nonce
         if (!this.validHash(block, block.difficulty)) {
             return false;
         }
