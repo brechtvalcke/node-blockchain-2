@@ -62,7 +62,7 @@ app.post("/blockMined", (req,res) => {
         res.status(400).json({error: "Token invalid"});
         return;
     }
-    blockchain.broadCastMinedBlock(new Block(req.body.block), true);
+    blockchain.broadCastMinedBlock(new Block(req.body.block));
     res.json({succes: "block broadcasted"});
 })
 
